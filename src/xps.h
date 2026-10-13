@@ -12,6 +12,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <signal.h>
+#include <errno.h>
 
 // 3rd party libraries
 #include "lib/vec/vec.h" // https://github.com/rxi/vec
