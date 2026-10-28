@@ -74,3 +74,15 @@ char *get_remote_ip(u_int sock_fd) {
 
   return ip_str;
 }
+
+void vec_filter_null(vec_void_t *v) {
+    int j = 0;
+
+    for (int i = 0; i < v->length; i++) {
+        if (v->data[i] != NULL) {
+            v->data[j++] = v->data[i];
+        }
+    }
+
+    v->length = j;
+}

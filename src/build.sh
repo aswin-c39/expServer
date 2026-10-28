@@ -5,4 +5,5 @@ gcc -g -o xps main.c \
     network/xps_listener.c \
     utils/xps_logger.c \
     utils/xps_utils.c \
-    lib/vec/vec.c
+    utils/xps_buffer.c \
+    lib/vec/vec.c 

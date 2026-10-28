@@ -64,7 +64,12 @@ xps_listener_t *xps_listener_create(xps_core_t* core, const char *host, u_int po
   listener->sock_fd = sock_fd;
 
   // Attach listener to loop
-  xps_loop_attach(core->loop, sock_fd, EPOLLIN, listener, listener_connection_handler);
+if (xps_loop_attach(core->loop, sock_fd, EPOLLIN, listener, listener_connection_handler, NULL, NULL) == E_FAIL) {
+    logger(LOG_ERROR, "xps_listener_create()","failed to attach listener to epoll");
+    close(sock_fd);
+    free(listener);
+    return NULL;
+}
 
   // Add listener to global listeners list
   vec_push(&(core->listeners), listener);
@@ -114,7 +119,11 @@ void listener_connection_handler(void* ptr) {
     perror("Error message");
     return;
   }
-
+  if (make_socket_non_blocking(conn_sock_fd) == E_FAIL) {
+    logger(LOG_ERROR, "listener_connection_handler()","failed to make socket nonblocking");
+    close(conn_sock_fd);
+    return;
+  }
   // Creating connection instance
   xps_connection_t *client = xps_connection_create(listener->core, conn_sock_fd); // Will be implemented later
   if (client == NULL) {

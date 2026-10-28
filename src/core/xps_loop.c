@@ -1,6 +1,6 @@
 #include "xps_loop.h"
 
-loop_event_t *loop_event_create(u_int fd, void *ptr, xps_handler_t read_cb) {
+loop_event_t *loop_event_create(u_int fd, void *ptr, xps_handler_t read_cb, xps_handler_t write_cb, xps_handler_t close_cb) {
   assert(ptr != NULL);
 
   // Alloc memory for 'event' instance
@@ -14,6 +14,8 @@ loop_event_t *loop_event_create(u_int fd, void *ptr, xps_handler_t read_cb) {
   event->fd = fd;
   event->ptr = ptr;
   event->read_cb = read_cb;
+  event->write_cb = write_cb;
+  event->close_cb = close_cb;
   
   logger(LOG_DEBUG, "event_create()", "created event");
 
@@ -69,12 +71,13 @@ void xps_loop_destroy(xps_loop_t *loop) {
     free(loop);
 }
 
-int xps_loop_attach(xps_loop_t *loop, u_int fd, int event_flags, void *ptr, xps_handler_t read_cb) {
+int xps_loop_attach(xps_loop_t *loop, u_int fd, int event_flags, void *ptr, xps_handler_t read_cb, xps_handler_t write_cb, xps_handler_t close_cb) {
     assert(loop != NULL);
     assert(ptr != NULL);
 
-    loop_event_t *event = loop_event_create(fd, ptr, read_cb);
-    if(event == NULL) {
+    loop_event_t *event = loop_event_create(fd, ptr, read_cb, write_cb, close_cb);
+    if (event == NULL) {
+        logger(LOG_ERROR, "xps_loop_attach()", "event creation failed");
         return E_FAIL;
     }
 
@@ -84,15 +87,18 @@ int xps_loop_attach(xps_loop_t *loop, u_int fd, int event_flags, void *ptr, xps_
 
     if(epoll_ctl(loop->epoll_fd, EPOLL_CTL_ADD, fd, &ev) == -1) {
         logger(LOG_ERROR, "loop_attach()", "epoll ctl failed");
-        free(event);
+        loop_event_destroy(event);
         return E_FAIL;
     }
 
     if(vec_push(&loop->events, event) != 0) {
+        logger(LOG_ERROR, "xps_loop_attach()", "vec_push() failed");
         epoll_ctl(loop->epoll_fd, EPOLL_CTL_DEL, fd, NULL);
-        free(event);
+        loop_event_destroy(event);
         return E_FAIL;
     }
+
+    logger(LOG_DEBUG, "xps_loop_attach()", "attached event");
 
     return OK;
 }   
@@ -157,17 +163,34 @@ void xps_loop_run(xps_loop_t *loop) {
                     break;
                 }
             }
-            // 🟡 Above can be optimized using an RB tree
+
             if (curr_event_idx == -1) {
                 logger(LOG_DEBUG, "handle_epoll_events()", "event not found. skipping");
                 continue;
             }
 
-            // Read event
+            if(curr_epoll_event.events & (EPOLLERR | EPOLLHUP)) {
+                logger(LOG_DEBUG, "xps_loop_run()", "EVENT / close");
+                if(curr_event->close_cb != NULL) 
+                    curr_event->close_cb(curr_event->ptr);
+                continue;
+            }
+            
             if (curr_epoll_event.events & EPOLLIN) {
                 logger(LOG_DEBUG, "handle_epoll_events()", "EVENT / read");
                 if (curr_event->read_cb != NULL)
                     curr_event->read_cb(curr_event->ptr);
+                continue;
+            }
+
+            if (loop->events.data[curr_event_idx] != curr_event)
+                continue;
+
+            if (curr_epoll_event.events & EPOLLOUT) {
+                logger(LOG_DEBUG, "xps_loop_run()", "EVENT / write");
+
+                if (curr_event->write_cb != NULL)
+                    curr_event->write_cb(curr_event->ptr);
             }
         }
     }
