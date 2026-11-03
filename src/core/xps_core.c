@@ -69,6 +69,9 @@ void xps_core_start(xps_core_t *core) {
             logger(LOG_ERROR, "xps_core_start()", "listener creation failed");
             return;
         }
+        char msg[128];
+        snprintf(msg, sizeof(msg), "Server listening on port %d",port);
+        logger(LOG_INFO, "xps_listener_create()", msg);
     }
 
     /* run loop instance using xps_loop_run() */

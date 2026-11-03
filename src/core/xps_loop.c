@@ -135,8 +135,10 @@ void xps_loop_run(xps_loop_t *loop) {
     /* Validate params */
     assert(loop != NULL);
     while (1) {
+        bool has_ready_connections = handle_connections(loop);
         logger(LOG_DEBUG, "xps_loop_run()", "epoll wait");
-        int n_events = epoll_wait(loop->epoll_fd, loop->epoll_events, MAX_EPOLL_EVENTS, -1);
+        int timeout = has_ready_connections ? 0 : -1;
+        int n_events = epoll_wait(loop->epoll_fd, loop->epoll_events, MAX_EPOLL_EVENTS, timeout);
         logger(LOG_DEBUG, "xps_loop_run()", "epoll wait over");
 
         if (n_events == -1) {
@@ -194,4 +196,37 @@ void xps_loop_run(xps_loop_t *loop) {
             }
         }
     }
+}
+
+bool handle_connections(xps_loop_t* loop) {
+    assert(loop != NULL);
+
+    for (size_t i = 0; i < loop->core->connections.length; i++) {
+        xps_connection_t* connection = loop->core->connections.data[i];
+        if(connection == NULL) continue;
+        if (connection->read_ready == true) {
+            connection->recv_handler(connection);
+
+            //check if connection still exists
+            connection = loop->core->connections.data[i];
+            if(connection == NULL) continue;
+        }
+        if (connection->write_ready == true && connection->write_buff_list->len > 0)
+            connection->send_handler(connection);
+    }
+
+    for (size_t i = 0; i < loop->core->connections.length; i++) {
+        xps_connection_t* connection = loop->core->connections.data[i];
+
+		/*check if connection is NULL and continue if it is*/
+        if(connection == NULL) continue;
+
+        if (connection->read_ready == true)
+            return true;
+
+        if (connection->write_ready == true && connection->write_buff_list->len > 0)
+            return true;
+    }
+
+    return false;
 }
