@@ -22,6 +22,7 @@
 #define DEFAULT_BACKLOG 64
 #define MAX_EPOLL_EVENTS 32
 #define DEFAULT_BUFFER_SIZE 100000 // 100 KB
+#define DEFAULT_PIPE_BUFF_THRESH 1000000
 #define DEFAULT_NULLS_THRESH 32
 
 // Error Constants
@@ -45,6 +46,9 @@ struct xps_core_s;
 struct xps_loop_s;
 struct xps_buffer_list_s;
 struct xps_buffer_s;
+struct xps_pipe_s;
+struct xps_pipe_source_s;
+struct xps_pipe_sink_s;
 
 // Struct typedefs
 typedef struct xps_core_s xps_core_t;
@@ -60,6 +64,7 @@ typedef void (*xps_handler_t)(void *ptr);
 // xps headers
 #include "core/xps_core.h"
 #include "core/xps_loop.h"
+#include "core/xps_pipe.h"
 #include "network/xps_connection.h"
 #include "network/xps_listener.h"
 #include "utils/xps_logger.h"

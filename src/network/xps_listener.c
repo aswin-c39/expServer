@@ -138,6 +138,13 @@ void listener_connection_handler(void* ptr) {
     }
     client->listener = listener;
 
+    //Creates pipe for the connection created
+    if(xps_pipe_create(listener->core, DEFAULT_PIPE_BUFF_THRESH, client->source, client->sink) == NULL) {
+      logger(LOG_ERROR, "listener_connection_handler()", "xps_pipe_create() failed");
+      xps_connection_destroy(client);
+      continue;
+    }
+
     logger(LOG_INFO, "xps_listener_connection_handler()", "new connection");
   }
 }

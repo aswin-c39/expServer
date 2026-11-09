@@ -18,6 +18,8 @@ xps_core_t *xps_core_create() {
     core->loop = loop;
     vec_init(&(core->listeners));
     vec_init(&(core->connections));
+    vec_init(&(core->pipes));
+    core->n_null_pipes = 0;
     core->n_null_listeners = 0;
     core->n_null_connections = 0;
 
@@ -32,23 +34,40 @@ void xps_core_destroy(xps_core_t *core) {
     // Destroy connections
     for (int i = 0; i < core->connections.length; i++) {
         xps_connection_t *connection = core->connections.data[i];
-        if (connection != NULL)
-            xps_connection_destroy(connection); // modification of xps_connection_destroy() will be look at later
-    }
-    vec_deinit(&(core->connections));
 
-    /* destory all the listeners and de-initialize core->listeners */
-    for(int i = 0; i < core->listeners.length; i++) {
+        if (connection != NULL)
+            xps_connection_destroy(connection);
+    }
+    vec_deinit(&core->connections);
+
+    // Destroy listeners
+    for (int i = 0; i < core->listeners.length; i++) {
         xps_listener_t *listener = core->listeners.data[i];
-        if(listener != NULL)
+
+        if (listener != NULL)
             xps_listener_destroy(listener);
     }
-    vec_deinit(&(core->listeners));
+    vec_deinit(&core->listeners);
 
-    /* destory loop attached to core */
+    // Destroy pipes
+    for (int i = 0; i < core->pipes.length; i++) {
+        xps_pipe_t *pipe = core->pipes.data[i];
+
+        if (pipe == NULL)
+            continue;
+
+        // Connections should have detached their endpoints.
+        if (pipe->source != NULL || pipe->sink != NULL) {
+            logger(LOG_ERROR, "xps_core_destroy()", "pipe still has attached endpoints");
+        }
+        xps_pipe_destroy(pipe);
+    }
+    vec_deinit(&core->pipes);
+
+    // Destroy loop
     xps_loop_destroy(core->loop);
 
-    /* free core instance */
+    // Free core
     free(core);
 
     logger(LOG_DEBUG, "xps_core_destroy()", "destroyed core");
