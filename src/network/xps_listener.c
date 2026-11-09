@@ -171,8 +171,29 @@ void listener_connection_handler(void* ptr) {
                 continue;
             }
 
-        } else {
+        } else if(listener->port == 8002 || listener->port == 8003) {
+          /*serve the public sample on 8002 and reject the restricted path on 8003*/
+          int error;
+          const char *file_path = listener->port == 8002
+              ? "public/sample.txt"
+              : "../temp/file.txt";
+          xps_file_t *file = xps_file_create(listener->core, file_path, &error);
+          if(file == NULL) {
+            logger(LOG_ERROR, "listener_connection_handler()", "xps_file_create() failed: %d", error);
+            xps_connection_destroy(client);
+            continue;
+          }
 
+          if(xps_pipe_create(listener->core, DEFAULT_PIPE_BUFF_THRESH, file->source, client->sink) == NULL) {
+            logger(LOG_ERROR, "listener_connection_handler()", "failed to create file-to-client pipe");
+            xps_pipe_source_destroy(file->source);
+            file->source = NULL;
+            xps_file_destroy(file);
+            xps_connection_destroy(client);
+            continue;
+          }
+
+        } else {
             // Create pipe for direct connection (same as previous stages)
             if(xps_pipe_create(listener->core, DEFAULT_PIPE_BUFF_THRESH, client->source, client->sink) == NULL) {
                 logger(LOG_ERROR, "listener_connection_handler()", "xps_pipe_create() failed");

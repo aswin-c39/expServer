@@ -14,6 +14,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 // 3rd party libraries
 #include "lib/vec/vec.h" // https://github.com/rxi/vec
@@ -57,6 +58,7 @@ typedef struct xps_listener_s xps_listener_t;
 typedef struct xps_connection_s xps_connection_t;
 typedef struct xps_buffer_list_s xps_buffer_list_t;
 typedef struct xps_buffer_s xps_buffer_t;
+typedef struct xps_file_s xps_file_t;
 
 //Function typedefs
 typedef void (*xps_handler_t)(void *ptr);
@@ -71,5 +73,7 @@ typedef void (*xps_handler_t)(void *ptr);
 #include "utils/xps_utils.h"
 #include "utils/xps_buffer.h"
 #include "network/xps_upstream.h"
+#include "disk/xps_mime.h"
+#include "disk/xps_file.h"
 
 #endif  
