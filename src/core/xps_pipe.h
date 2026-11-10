@@ -3,10 +3,6 @@
 
 #include "../xps.h"
 
-typedef struct xps_pipe_s xps_pipe_t;
-typedef struct xps_pipe_source_s xps_pipe_source_t;
-typedef struct xps_pipe_sink_s xps_pipe_sink_t;
-
 struct xps_pipe_s {
     xps_core_t *core;
     xps_pipe_source_t *source;

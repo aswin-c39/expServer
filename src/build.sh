@@ -2,6 +2,7 @@ gcc -g -o xps main.c \
     core/xps_core.c \
     core/xps_loop.c \
     core/xps_pipe.c\
+    core/xps_session.c\
     disk/xps_mime.c\
     disk/xps_file.c\
     network/xps_connection.c \

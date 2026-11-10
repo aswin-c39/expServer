@@ -108,100 +108,47 @@ void xps_listener_destroy(xps_listener_t *listener) {
 }
 
 void listener_connection_handler(void* ptr) {
-    assert(ptr != NULL);
-    xps_listener_t *listener = ptr;
-    struct sockaddr conn_addr;
+  assert(ptr != NULL);
+  xps_listener_t *listener = ptr;
+  struct sockaddr conn_addr;
 
-    // Accepting connection
-    while(1) {
-        socklen_t conn_addr_len = sizeof(conn_addr);
-        int conn_sock_fd = accept(listener->sock_fd, (struct sockaddr *)&conn_addr, &conn_addr_len);
+  // Accepting connection
+  while(1) {
+      socklen_t conn_addr_len = sizeof(conn_addr);
+      int conn_sock_fd = accept(listener->sock_fd, (struct sockaddr *)&conn_addr, &conn_addr_len);
 
-        if(conn_sock_fd < 0) {
-            if(errno == EAGAIN || errno == EWOULDBLOCK) {
-                break;
-            }
-            logger(LOG_ERROR, "xps_listener_connection_handler()", "accept() failed");
-            perror("Error message");
-            break;
-        }
-
-        if(make_socket_non_blocking(conn_sock_fd) == E_FAIL) {
-            logger(LOG_ERROR, "listener_connection_handler()", "failed to make socket nonblocking");
-            close(conn_sock_fd);
-            continue;
-        }
-
-        // Creating client connection instance
-        xps_connection_t *client = xps_connection_create(listener->core, conn_sock_fd);
-
-        if(client == NULL) {
-            logger(LOG_ERROR, "xps_listener_connection_handler()", "xps_connection_create() failed");
-            close(conn_sock_fd);
-            continue;
-        }
-
-        client->listener = listener;
-
-        // Handle connection based on listener port
-        if(listener->port == 8001) {
-
-            // Create upstream connection to 127.0.0.1:3000
-            xps_connection_t *upstream = xps_upstream_create(listener->core, "127.0.0.1", 3000);
-
-            if(upstream == NULL) {
-                logger(LOG_ERROR, "listener_connection_handler()", "xps_upstream_create() failed");
-                xps_connection_destroy(client);
-                continue;
-            }
-
-            // Create pipe from client to upstream
-            if(xps_pipe_create(listener->core, DEFAULT_PIPE_BUFF_THRESH, client->source, upstream->sink) == NULL) {
-                logger(LOG_ERROR, "listener_connection_handler()", "failed to create client-to-upstream pipe");
-                xps_connection_destroy(client);
-                xps_connection_destroy(upstream);
-                continue;
-            }
-
-            // Create pipe from upstream to client
-            if(xps_pipe_create(listener->core, DEFAULT_PIPE_BUFF_THRESH, upstream->source, client->sink) == NULL) {
-                logger(LOG_ERROR, "listener_connection_handler()", "failed to create upstream-to-client pipe");
-                xps_connection_destroy(client);
-                xps_connection_destroy(upstream);
-                continue;
-            }
-
-        } else if(listener->port == 8002 || listener->port == 8003) {
-          /*serve the public sample on 8002 and reject the restricted path on 8003*/
-          int error;
-          const char *file_path = listener->port == 8002
-              ? "public/sample.txt"
-              : "../temp/file.txt";
-          xps_file_t *file = xps_file_create(listener->core, file_path, &error);
-          if(file == NULL) {
-            logger(LOG_ERROR, "listener_connection_handler()", "xps_file_create() failed: %d", error);
-            xps_connection_destroy(client);
-            continue;
+      if(conn_sock_fd < 0) {
+          if(errno == EAGAIN || errno == EWOULDBLOCK) {
+              break;
           }
+          logger(LOG_ERROR, "xps_listener_connection_handler()", "accept() failed");
+          perror("Error message");
+          break;
+      }
 
-          if(xps_pipe_create(listener->core, DEFAULT_PIPE_BUFF_THRESH, file->source, client->sink) == NULL) {
-            logger(LOG_ERROR, "listener_connection_handler()", "failed to create file-to-client pipe");
-            xps_pipe_source_destroy(file->source);
-            file->source = NULL;
-            xps_file_destroy(file);
-            xps_connection_destroy(client);
-            continue;
-          }
+      if(make_socket_non_blocking(conn_sock_fd) == E_FAIL) {
+          logger(LOG_ERROR, "listener_connection_handler()", "failed to make socket nonblocking");
+          close(conn_sock_fd);
+          continue;
+      }
 
-        } else {
-            // Create pipe for direct connection (same as previous stages)
-            if(xps_pipe_create(listener->core, DEFAULT_PIPE_BUFF_THRESH, client->source, client->sink) == NULL) {
-                logger(LOG_ERROR, "listener_connection_handler()", "xps_pipe_create() failed");
-                xps_connection_destroy(client);
-                continue;
-            }
-        }
+      // Creating client connection instance
+      xps_connection_t *client = xps_connection_create(listener->core, conn_sock_fd);
 
-        logger(LOG_INFO, "listener_connection_handler()", "new connection");
-    }
+      if(client == NULL) {
+          logger(LOG_ERROR, "xps_listener_connection_handler()", "xps_connection_create() failed");
+          close(conn_sock_fd);
+          continue;
+      }
+
+      client->listener = listener;
+
+      xps_session_t *session = xps_session_create(listener->core, client);
+      if (session == NULL) {
+          logger(LOG_ERROR, "listener_connection_handler()", "xps_session_create() failed");
+          xps_connection_destroy(client);
+          return;
+      }
+      logger(LOG_INFO, "listener_connection_handler()", "new connection");
+  }
 }

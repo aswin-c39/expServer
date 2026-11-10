@@ -270,6 +270,13 @@ void filter_nulls(xps_core_t *core) {
 
         logger(LOG_DEBUG, "filter_nulls()", "filtered NULL pipes");
     }
+
+    if(core->n_null_sessions > DEFAULT_NULLS_THRESH) {
+        vec_filter_null(&core->sessions);
+        core->n_null_sessions = 0;
+
+        logger(LOG_DEBUG, "filter_nulls()", "filtered NULL sessions");
+    }
 }
 
 void handle_epoll_events(xps_loop_t *loop, int n_events) {
