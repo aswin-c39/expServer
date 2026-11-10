@@ -7,6 +7,7 @@ struct xps_session_s {
   xps_core_t *core;
   xps_connection_t *client;
   xps_connection_t *upstream;
+  xps_http_req_t *http_req;
   bool upstream_connected;
   bool upstream_error_res_set;
   u_long upstream_write_bytes;
@@ -43,5 +44,7 @@ void set_from_client_buff(xps_session_t *session, xps_buffer_t *buff);
 
 void upstream_error_res(xps_session_t *session);
 void session_check_destroy(xps_session_t *session);
+
+void session_process_request(xps_session_t *session);
 
 #endif

@@ -33,6 +33,8 @@ xps_file_t *xps_file_create(xps_core_t *core, const char *file_path, int *error)
 
     if (resolved_path == NULL || resolved_public == NULL) {
         logger(LOG_ERROR, "xps_file_create()", "realpath() failed");
+        if (resolved_path == NULL && (errno == ENOENT || errno == ENOTDIR))
+            *error = E_NOTFOUND;
         free(resolved_path);
         free(resolved_public);
         return NULL;

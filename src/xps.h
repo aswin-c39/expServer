@@ -63,6 +63,8 @@ typedef struct xps_pipe_s xps_pipe_t;
 typedef struct xps_pipe_source_s xps_pipe_source_t;
 typedef struct xps_pipe_sink_s xps_pipe_sink_t;
 typedef struct xps_session_s xps_session_t;
+typedef struct xps_http_req_s xps_http_req_t;
+typedef struct xps_keyval_s xps_keyval_t;
 
 //Function typedefs
 typedef void (*xps_handler_t)(void *ptr);
@@ -80,5 +82,7 @@ typedef void (*xps_handler_t)(void *ptr);
 #include "network/xps_upstream.h"
 #include "disk/xps_mime.h"
 #include "disk/xps_file.h"
+#include "http/xps_http.h"
+#include "http/xps_http_req.h"
 
 #endif  
